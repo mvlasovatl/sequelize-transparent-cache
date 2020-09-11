@@ -18,66 +18,72 @@ class MemcachedAdaptor {
   }
 
   set (key, value) {
-    return new Promise((resolve, reject) => {
-      const keyWithNamespace = this._withNamespace(key)
-
-      try {
-        this.client.set(
-          keyWithNamespace,
-          JSON.stringify(value),
-          this.lifetime,
-          error => error
-            ? this._onError(error, resolve, reject, 'set', keyWithNamespace)
-            : resolve()
-        )
-      } catch (error) {
-        this._onError(error, resolve, reject, 'set', keyWithNamespace)
-      }
+    const keyWithNamespace = this._withNamespace(key)
+    const operation = 'set'
+    let promise = new Promise((resolve, reject) => {
+      this.client.set(
+        keyWithNamespace,
+        JSON.stringify(value),
+        this.lifetime,
+        error => error
+          ? this._onError(error, resolve, reject, operation, keyWithNamespace)
+          : resolve()
+      )
     })
+
+    if (this.errorHandler) {
+      promise = promise.catch((error) => this.errorHandler(error, operation, keyWithNamespace))
+    }
+
+    return promise
   }
 
   get (key) {
-    return new Promise((resolve, reject) => {
-      const keyWithNamespace = this._withNamespace(key)
-
-      try {
-        this.client.get(
-          keyWithNamespace,
-          (error, data) => {
-            if (error) {
-              this._onError(error, resolve, reject, 'get', keyWithNamespace)
-              return
-            }
-
-            if (!data) {
-              resolve(data)
-              return
-            }
-
-            resolve(JSON.parse(data))
+    const keyWithNamespace = this._withNamespace(key)
+    const operation = 'get'
+    let promise = new Promise((resolve, reject) => {
+      this.client.get(
+        keyWithNamespace,
+        (error, data) => {
+          if (error) {
+            this._onError(error, resolve, reject, operation, keyWithNamespace)
+            return
           }
-        )
-      } catch (error) {
-        this._onError(error, resolve, reject, 'get', keyWithNamespace)
-      }
+
+          if (!data) {
+            resolve(data)
+            return
+          }
+
+          resolve(JSON.parse(data))
+        }
+      )
     })
+
+    if (this.errorHandler) {
+      promise = promise.catch((error) => this.errorHandler(error, operation, keyWithNamespace))
+    }
+
+    return promise
   }
 
   del (key) {
-    return new Promise((resolve, reject) => {
-      const keyWithNamespace = this._withNamespace(key)
-
-      try {
-        this.client.del(
-          keyWithNamespace,
-          error => error
-            ? this._onError(error, resolve, reject, 'del', keyWithNamespace)
-            : resolve()
-        )
-      } catch (error) {
-        this._onError(error, resolve, reject, 'del', keyWithNamespace)
-      }
+    const keyWithNamespace = this._withNamespace(key)
+    const operation = 'del'
+    let promise = new Promise((resolve, reject) => {
+      this.client.del(
+        keyWithNamespace,
+        error => error
+          ? this._onError(error, resolve, reject, operation, keyWithNamespace)
+          : resolve()
+      )
     })
+
+    if (this.errorHandler) {
+      promise = promise.catch((error) => this.errorHandler(error, operation, keyWithNamespace))
+    }
+
+    return promise
   }
 
   _onError (error, resolve, reject, operation, key) {
